@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Repository
-public class InMemoryItemRepositoryImpl implements ItemRepository{
+public class InMemoryItemRepositoryImpl implements ItemRepository {
     private final Map<Long, Item> items = new HashMap<>();
     private Long itemIdCounter = 1L;
 
