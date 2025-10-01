@@ -19,6 +19,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(UserCreateDto user) {
+        if (user.getEmail() == null) {
+            throw new IllegalArgumentException("Email должен быть указан");
+        }
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new EmailAlreadyUsedException(user.getEmail());
         }
@@ -29,11 +32,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(Long userId, UserUpdateDto user) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException(userId);
-        }
-
-        User existingUser = userRepository.findById(userId);
+        User existingUser = getUser(userId);
 
         String newEmail = user.getEmail();
         if (newEmail != null &&
@@ -54,18 +53,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserDto(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException(userId);
-        }
-        return UserMapper.toDto(userRepository.findById(userId));
+        return UserMapper.toDto(getUser(userId));
     }
 
     @Override
     public User getUser(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException(userId);
-        }
-        return userRepository.findById(userId);
+        return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     }
 
     @Override

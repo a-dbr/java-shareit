@@ -23,18 +23,14 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto getItemDto(Long itemId) {
-        if (!itemRepository.existsById(itemId)) {
-            throw new ItemNotFoundException(itemId);
-        }
-        return ItemMapper.toDto(itemRepository.findById(itemId));
+        return itemRepository.findById(itemId)
+                .map(ItemMapper::toDto)
+                .orElseThrow(() -> new ItemNotFoundException(itemId));
     }
 
     @Override
     public Item getItem(Long itemId) {
-        if (!itemRepository.existsById(itemId)) {
-            throw new ItemNotFoundException(itemId);
-        }
-        return itemRepository.findById(itemId);
+        return itemRepository.findById(itemId).orElseThrow(() -> new ItemNotFoundException(itemId));
     }
 
     @Override
@@ -46,6 +42,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto createItem(ItemCreateDto itemDto, Long ownerId) {
+        if (itemDto == null) {
+            throw new IllegalArgumentException("ItemCreateDto не должен быть null");
+        }
         if (!userService.isUserExist(ownerId)) {
             throw new UserNotFoundException(ownerId);
         }
@@ -56,15 +55,18 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemDto updateItem(Long itemId, ItemUpdateDto itemUpdateDto, Long ownerId) {
-        Item item = itemRepository.findById(itemId);
+        if (itemUpdateDto == null) {
+            throw new IllegalArgumentException("ItemUpdateDto не должен быть null");
+        }
+        Item item = getItem(itemId);
         checkItemOwner(item, ownerId);
-        if (itemUpdateDto.getAvailable() != null && !itemUpdateDto.getAvailable().equals(item.getAvailable())) {
+        if (itemUpdateDto.getAvailable() != null) {
             item.setAvailable(itemUpdateDto.getAvailable());
         }
-        if (itemUpdateDto.getName() != null && !itemUpdateDto.getName().equals(item.getName())) {
+        if (itemUpdateDto.getName() != null) {
             item.setName(itemUpdateDto.getName());
         }
-        if (itemUpdateDto.getDescription() != null && !itemUpdateDto.getDescription().equals(item.getDescription())) {
+        if (itemUpdateDto.getDescription() != null) {
             item.setDescription(itemUpdateDto.getDescription());
         }
         return ItemMapper.toDto(itemRepository.save(item));
@@ -72,7 +74,8 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public void deleteItem(Long itemId, Long ownerId) {
-        checkItemOwner(itemRepository.findById(itemId), ownerId);
+        Item item = getItem(itemId);
+        checkItemOwner(item, ownerId);
         itemRepository.deleteById(itemId);
     }
 

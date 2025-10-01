@@ -6,6 +6,7 @@ import ru.practicum.shareit.item.model.Item;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -23,8 +24,8 @@ public class InMemoryItemRepositoryImpl implements ItemRepository {
     }
 
     @Override
-    public Item findById(Long id) {
-        return items.get(id);
+    public Optional<Item> findById(Long id) {
+        return Optional.of(items.get(id));
     }
 
     @Override
@@ -32,11 +33,6 @@ public class InMemoryItemRepositoryImpl implements ItemRepository {
         return items.values().stream()
                 .filter(i -> i.getOwnerId().equals(ownerId))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public boolean existsById(Long id) {
-        return items.containsKey(id);
     }
 
     @Override

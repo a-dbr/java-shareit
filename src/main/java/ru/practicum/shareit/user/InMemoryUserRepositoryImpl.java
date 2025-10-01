@@ -3,10 +3,7 @@ package ru.practicum.shareit.user;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 public class InMemoryUserRepositoryImpl implements UserRepository {
@@ -24,8 +21,8 @@ public class InMemoryUserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public User findById(Long id) {
-        return users.get(id);
+    public Optional<User> findById(Long id) {
+        return Optional.of(users.get(id));
     }
 
     @Override
