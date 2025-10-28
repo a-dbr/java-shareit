@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.enums.BookingStatus;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Service
 @Validated
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BookingQueryServiceImpl implements BookingQueryService {
 
     private final BookingRepository bookingRepository;
@@ -32,8 +34,11 @@ public class BookingQueryServiceImpl implements BookingQueryService {
 
     @Override
     public boolean isBooked(Long itemId, Long userId) {
-        return bookingRepository.existsByItemIdAndBookerIdAndStatusAndStartBefore(itemId, userId,
+        return bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                itemId,
+                userId,
                 BookingStatus.APPROVED,
-                LocalDateTime.now());
+                LocalDateTime.now()
+        );
     }
 }

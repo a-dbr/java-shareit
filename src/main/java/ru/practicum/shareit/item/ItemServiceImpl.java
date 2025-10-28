@@ -2,6 +2,7 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.booking.BookingQueryService;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
@@ -64,6 +66,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public ItemDto createItem(ItemCreateDto itemDto, Long ownerId) {
         User owner = userService.getUser(ownerId);
         Item item = itemMapper.fromCreateDto(itemDto);
@@ -72,6 +75,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public ItemDto updateItem(Long itemId, ItemUpdateDto itemUpdateDto, Long ownerId) {
         if (!checkItemOwner(itemId, ownerId)) {
             throw new AccessDeniedException("Изменять вещь может только её владелец");
@@ -91,6 +95,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public void deleteItem(Long itemId, Long ownerId) {
         if (checkItemOwner(itemId, ownerId)) {
             itemRepository.deleteById(itemId);
@@ -108,6 +113,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public CommentDto postComment(CommentCreateDto commentCreateDto, Long itemId, Long userId) {
         validateCommentCreate(itemId, userId);
 

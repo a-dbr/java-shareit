@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.booking.dto.BookingCreateDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
     private final ItemService itemService;
@@ -31,6 +33,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
 
     @Override
+    @Transactional
     public BookingDto createBooking(BookingCreateDto createDto, Long userId) {
         User user = userService.getUser(userId);
         Item item = itemService.getItem(createDto.getItemId());
@@ -54,6 +57,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingDto approveBooking(Long id, Long userId, boolean approved) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));

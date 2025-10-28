@@ -2,6 +2,7 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.exception.EmailAlreadyUsedException;
 import ru.practicum.shareit.exception.NotFoundException;
@@ -15,12 +16,14 @@ import java.util.stream.Collectors;
 
 @Service
 @Validated
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
     @Override
+    @Transactional
     public UserDto createUser(UserCreateDto user) {
         if (user.getEmail() == null) {
             throw new IllegalArgumentException("Email должен быть указан");
@@ -34,6 +37,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserDto updateUser(Long userId, UserUpdateDto user) {
         User existingUser = getUser(userId);
 
@@ -78,6 +82,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
     }
