@@ -25,16 +25,14 @@ public class BookingQueryServiceImpl implements BookingQueryService {
     }
 
     @Override
-    public BookingDto getNextBookingByItemId( Long itemId) {
+    public BookingDto getNextBookingByItemId(Long itemId) {
         Booking booking = bookingRepository.findTopByItemIdAndStartAfterOrderByStartAsc(itemId, LocalDateTime.now());
         return bookingMapper.toDto(booking);
     }
 
     @Override
-    public boolean isBooked( Long itemId, Long userId) {
-        return bookingRepository.existsByItemIdAndBookerIdAndStatusAndStartBefore(
-                itemId,
-                userId,
+    public boolean isBooked(Long itemId, Long userId) {
+        return bookingRepository.existsByItemIdAndBookerIdAndStatusAndStartBefore(itemId, userId,
                 BookingStatus.APPROVED,
                 LocalDateTime.now());
     }

@@ -35,11 +35,11 @@ public class BookingServiceImpl implements BookingService {
         User user = userService.getUser(userId);
         Item item = itemService.getItem(createDto.getItemId());
 
-        if(!item.getAvailable()) {
+        if (!item.getAvailable()) {
             throw new ItemNotAvailableException();
         }
 
-        if(createDto.getStart().isAfter(createDto.getEnd())) {
+        if (createDto.getStart().isAfter(createDto.getEnd())) {
             throw new IllegalArgumentException("Дата начала бронирования не может быть позже даты окончания.");
         }
 
