@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item;
 
+import jakarta.validation.constraints.NotNull;
 import org.mapstruct.*;
 import ru.practicum.shareit.booking.BookingMapper;
 import ru.practicum.shareit.item.dto.ItemCreateDto;
@@ -12,13 +13,13 @@ import ru.practicum.shareit.user.model.User;
 @Mapper(componentModel = "spring", uses = {BookingMapper.class})
 public interface ItemMapper {
 
-    Item fromCreateDto(ItemCreateDto dto);
+    Item fromCreateDto(@NotNull ItemCreateDto dto);
 
     @Mapping(source = "owner", target = "ownerId")
-    ItemDto toDto(Item item);
+    ItemDto toDto(@NotNull Item item);
 
-    default Long map(User owner) {
-        return owner == null ? null : owner.getId();
+    default Long map(@NotNull User owner) {
+        return owner.getId();
     }
 
     ItemWithBookingsDto toDtoWithBookings(Item item);

@@ -2,6 +2,7 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.exception.EmailAlreadyUsedException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.user.dto.UserCreateDto;
@@ -13,9 +14,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public UserDto createUser(UserCreateDto user) {
@@ -25,9 +28,9 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new EmailAlreadyUsedException(user.getEmail());
         }
-        User newUser = UserMapper.fromDto(user);
+        User newUser = userMapper.fromDto(user);
         newUser = userRepository.save(newUser);
-        return UserMapper.toDto(newUser);
+        return userMapper.toDto(newUser);
     }
 
     @Override
@@ -48,12 +51,12 @@ public class UserServiceImpl implements UserService {
             existingUser.setEmail(newEmail);
         }
 
-        return UserMapper.toDto(userRepository.save(existingUser));
+        return userMapper.toDto(userRepository.save(existingUser));
     }
 
     @Override
     public UserDto getUserDto(Long userId) {
-        return UserMapper.toDto(getUser(userId));
+        return userMapper.toDto(getUser(userId));
     }
 
     @Override
@@ -70,7 +73,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(UserMapper::toDto)
+                .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
 
