@@ -1,5 +1,6 @@
 package ru.practicum.shareit.user;
 
+import jakarta.validation.constraints.NotNull;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
@@ -8,17 +9,17 @@ import ru.practicum.shareit.user.model.User;
 import java.util.List;
 
 public interface UserService {
-    UserDto createUser(UserCreateDto user);
+    UserDto createUser(@NotNull UserCreateDto user);
 
-    UserDto updateUser(Long userId, UserUpdateDto user);
+    UserDto updateUser(@NotNull Long userId, @NotNull UserUpdateDto user);
 
-    UserDto getUserDto(Long userId);
+    UserDto getUserDto(@NotNull Long userId);
 
-    User getUser(Long userId);
+    User getUser(@NotNull Long userId);
 
-    boolean isUserExist(Long userId);
+    boolean isUserExist(@NotNull Long userId);
 
     List<UserDto> getAllUsers();
 
-    void deleteUser(Long userId);
+    void deleteUser(@NotNull Long userId);
 }
