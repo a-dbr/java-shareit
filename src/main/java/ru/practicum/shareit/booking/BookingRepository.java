@@ -10,36 +10,36 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    List<Booking> findByBookerIdAndStatusOrderByStartAsc(Long bookerId, BookingStatus status);
+    List<Booking> findByBookerIdAndStatusOrderByStartDesc(Long bookerId, BookingStatus status);
 
-    List<Booking> findAllByBookerIdOrderByStartAsc(Long bookerId);
+    List<Booking> findAllByBookerIdOrderByStartDesc(Long bookerId);
 
-    List<Booking> findByBookerIdAndEndBeforeOrderByEndAsc(Long bookerId, LocalDateTime end);
+    List<Booking> findByBookerIdAndEndBeforeOrderByEndDesc(Long bookerId, LocalDateTime end);
 
-    List<Booking> findByBookerIdAndStartAfterOrderByStartAsc(Long bookerId, LocalDateTime start);
+    List<Booking> findByBookerIdAndStartAfterOrderByStartDesc(Long bookerId, LocalDateTime start);
 
     @Query("""
         SELECT b FROM bookings b
         WHERE b.booker.id = :bookerId
           AND :currentTime BETWEEN b.start AND b.end
-        ORDER BY b.start ASC
+        ORDER BY b.start DESC
     """)
     List<Booking> findByBookerIdAndCurrentTime(@Param("bookerId") Long bookerId,
                                                @Param("currentTime") LocalDateTime currentTime);
 
-    List<Booking> findByItemOwnerIdAndStatusOrderByStartAsc(Long ownerId, BookingStatus status);
+    List<Booking> findByItemOwnerIdAndStatusOrderByStartDesc(Long ownerId, BookingStatus status);
 
-    List<Booking> findAllByItemOwnerIdOrderByStartAsc(Long ownerId);
+    List<Booking> findAllByItemOwnerIdOrderByStartDesc(Long ownerId);
 
-    List<Booking> findByItemOwnerIdAndEndBeforeOrderByEndAsc(Long ownerId, LocalDateTime endTime);
+    List<Booking> findByItemOwnerIdAndEndBeforeOrderByEndDesc(Long ownerId, LocalDateTime endTime);
 
-    List<Booking> findByItemOwnerIdAndStartAfterOrderByStartAsc(Long ownerId, LocalDateTime start);
+    List<Booking> findByItemOwnerIdAndStartAfterOrderByStartDesc(Long ownerId, LocalDateTime start);
 
     @Query("""
         SELECT b FROM bookings b
         WHERE b.item.owner.id = :ownerId
           AND :currentTime BETWEEN b.start AND b.end
-        ORDER BY b.start ASC
+        ORDER BY b.start DESC
     """)
     List<Booking> findByItemOwnerIdAndCurrent(@Param("ownerId") Long ownerId,
                                               @Param("currentTime") LocalDateTime current);

@@ -96,15 +96,15 @@ public class BookingServiceImpl implements BookingService {
 
         bookings = switch (status) {
             case WAITING ->
-                 bookingRepository.findByBookerIdAndStatusOrderByStartAsc(bookerId, BookingStatus.WAITING);
+                 bookingRepository.findByBookerIdAndStatusOrderByStartDesc(bookerId, BookingStatus.WAITING);
             case REJECTED ->
-                bookingRepository.findByBookerIdAndStatusOrderByStartAsc(bookerId, BookingStatus.REJECTED);
+                bookingRepository.findByBookerIdAndStatusOrderByStartDesc(bookerId, BookingStatus.REJECTED);
             case ALL ->
-                bookingRepository.findAllByBookerIdOrderByStartAsc(bookerId);
+                bookingRepository.findAllByBookerIdOrderByStartDesc(bookerId);
             case PAST ->
-                bookingRepository.findByBookerIdAndEndBeforeOrderByEndAsc(bookerId, now);
+                bookingRepository.findByBookerIdAndEndBeforeOrderByEndDesc(bookerId, now);
             case FUTURE ->
-                bookingRepository.findByBookerIdAndStartAfterOrderByStartAsc(bookerId, now);
+                bookingRepository.findByBookerIdAndStartAfterOrderByStartDesc(bookerId, now);
             case CURRENT ->
                 bookingRepository.findByBookerIdAndCurrentTime(bookerId, now);
         };
@@ -121,15 +121,15 @@ public class BookingServiceImpl implements BookingService {
 
         bookings = switch (status) {
             case WAITING ->
-                    bookingRepository.findByItemOwnerIdAndStatusOrderByStartAsc(ownerId, BookingStatus.WAITING);
+                    bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(ownerId, BookingStatus.WAITING);
             case REJECTED ->
-                    bookingRepository.findByItemOwnerIdAndStatusOrderByStartAsc(ownerId, BookingStatus.REJECTED);
+                    bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(ownerId, BookingStatus.REJECTED);
             case ALL ->
-                    bookingRepository.findAllByItemOwnerIdOrderByStartAsc(ownerId);
+                    bookingRepository.findAllByItemOwnerIdOrderByStartDesc(ownerId);
             case PAST ->
-                    bookingRepository.findByItemOwnerIdAndEndBeforeOrderByEndAsc(ownerId, now);
+                    bookingRepository.findByItemOwnerIdAndEndBeforeOrderByEndDesc(ownerId, now);
             case FUTURE ->
-                    bookingRepository.findByItemOwnerIdAndStartAfterOrderByStartAsc(ownerId, now);
+                    bookingRepository.findByItemOwnerIdAndStartAfterOrderByStartDesc(ownerId, now);
             case CURRENT ->
                     bookingRepository.findByItemOwnerIdAndCurrent(ownerId, now);
         };
