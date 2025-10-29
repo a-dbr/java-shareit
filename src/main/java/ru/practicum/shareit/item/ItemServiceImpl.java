@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import ru.practicum.shareit.booking.BookingQueryService;
+import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.enums.BookingStatus;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.exception.AccessDeniedException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.*;
@@ -14,6 +17,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.model.User;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +31,8 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final UserService userService;
     private final ItemMapper itemMapper;
-    private final BookingQueryService bookingQueryService;
+    private final BookingRepository bookingRepository;
+    private final BookingMapper bookingMapper;
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
 
@@ -53,8 +58,8 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.findAllByOwnerId(ownerId).stream()
                 .map(item -> {
                     ItemWithBookingsDto itemsDto = itemMapper.toDtoWithBookings(item);
-                    BookingDto last = bookingQueryService.getLastBookingByItemId(item.getId());
-                    BookingDto next = bookingQueryService.getNextBookingByItemId(item.getId());
+                    BookingDto last = getLastBookingByItemId(item.getId());
+                    BookingDto next = getNextBookingByItemId(item.getId());
                     Set<CommentDto> comments = commentRepository.findByItem(item).stream()
                             .map(commentMapper::toDto).collect(Collectors.toSet());
                     itemsDto.setComments(comments);
@@ -139,6 +144,25 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.existsById(itemId);
     }
 
+    private BookingDto getLastBookingByItemId(Long itemId) {
+        Booking booking = bookingRepository.findTopByItemIdAndEndBeforeOrderByEndDesc(itemId, LocalDateTime.now());
+        return bookingMapper.toDto(booking);
+    }
+
+    private BookingDto getNextBookingByItemId(Long itemId) {
+        Booking booking = bookingRepository.findTopByItemIdAndStartAfterOrderByStartAsc(itemId, LocalDateTime.now());
+        return bookingMapper.toDto(booking);
+    }
+
+    private boolean isBooked(Long itemId, Long userId) {
+        return bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                itemId,
+                userId,
+                BookingStatus.APPROVED,
+                LocalDateTime.now()
+        );
+    }
+
     private void validateCommentCreate(Long itemId, Long userId) {
         if (itemRepository.findById(itemId).isEmpty()) {
             throw new NotFoundException("Не найдено вещи c ID = %d".formatted(itemId));
@@ -147,7 +171,7 @@ public class ItemServiceImpl implements ItemService {
             throw new NotFoundException("Не найдено пользователя c ID = %d".formatted(userId));
         }
 
-        if (!bookingQueryService.isBooked(itemId, userId)) {
+        if (!isBooked(itemId, userId)) {
             throw new IllegalArgumentException("Не найдено бронирований вещи ID = %d пользователем ID = %d"
                     .formatted(itemId, userId));
         }
