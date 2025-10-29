@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import ru.practicum.shareit.user.model.User;
 
-@Entity(name = "items")
+@Entity
+@Table(name = "items")
 @Data
 public class Item {
     @Id
@@ -12,10 +13,13 @@ public class Item {
     @Column(name = "id")
     private Long id;
 
+    @Column(name = "name")
     private String name;
 
+    @Column(name = "description")
     private String description;
 
+    @Column(name = "available")
     private Boolean available;
 
     @ManyToOne(fetch = FetchType.LAZY)

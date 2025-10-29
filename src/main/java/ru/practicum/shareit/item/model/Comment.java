@@ -14,8 +14,10 @@ public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
+    @Column(name = "text")
     private String text;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -27,6 +29,6 @@ public class Comment {
     private User author;
 
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(name = "created", updatable = false)
     private Instant created;
 }

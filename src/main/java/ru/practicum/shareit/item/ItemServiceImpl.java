@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,17 +145,17 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.existsById(itemId);
     }
 
-    private BookingDto getLastBookingByItemId(Long itemId) {
+    private BookingDto getLastBookingByItemId(@NotNull Long itemId) {
         Booking booking = bookingRepository.findTopByItemIdAndEndBeforeOrderByEndDesc(itemId, LocalDateTime.now());
         return bookingMapper.toDto(booking);
     }
 
-    private BookingDto getNextBookingByItemId(Long itemId) {
+    private BookingDto getNextBookingByItemId(@NotNull Long itemId) {
         Booking booking = bookingRepository.findTopByItemIdAndStartAfterOrderByStartAsc(itemId, LocalDateTime.now());
         return bookingMapper.toDto(booking);
     }
 
-    private boolean isBooked(Long itemId, Long userId) {
+    private boolean isBooked(@NotNull Long itemId,@NotNull  Long userId) {
         return bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
                 itemId,
                 userId,

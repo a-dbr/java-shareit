@@ -19,7 +19,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByBookerIdAndStartAfterOrderByStartDesc(Long bookerId, LocalDateTime start);
 
     @Query("""
-        SELECT b FROM bookings b
+        SELECT b FROM Booking b
         WHERE b.booker.id = :bookerId
           AND :currentTime BETWEEN b.start AND b.end
         ORDER BY b.start DESC
@@ -36,7 +36,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByItemOwnerIdAndStartAfterOrderByStartDesc(Long ownerId, LocalDateTime start);
 
     @Query("""
-        SELECT b FROM bookings b
+        SELECT b FROM Booking b
         WHERE b.item.owner.id = :ownerId
           AND :currentTime BETWEEN b.start AND b.end
         ORDER BY b.start DESC
