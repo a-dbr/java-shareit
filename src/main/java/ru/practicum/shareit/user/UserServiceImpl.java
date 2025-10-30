@@ -2,8 +2,10 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.exception.EmailAlreadyUsedException;
-import ru.practicum.shareit.exception.UserNotFoundException;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserUpdateDto;
@@ -13,11 +15,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Validated
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
+    @Transactional
     public UserDto createUser(UserCreateDto user) {
         if (user.getEmail() == null) {
             throw new IllegalArgumentException("Email должен быть указан");
@@ -25,12 +31,13 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new EmailAlreadyUsedException(user.getEmail());
         }
-        User newUser = UserMapper.fromDto(user);
+        User newUser = userMapper.fromDto(user);
         newUser = userRepository.save(newUser);
-        return UserMapper.toDto(newUser);
+        return userMapper.toDto(newUser);
     }
 
     @Override
+    @Transactional
     public UserDto updateUser(Long userId, UserUpdateDto user) {
         User existingUser = getUser(userId);
 
@@ -48,17 +55,18 @@ public class UserServiceImpl implements UserService {
             existingUser.setEmail(newEmail);
         }
 
-        return UserMapper.toDto(userRepository.save(existingUser));
+        return userMapper.toDto(userRepository.save(existingUser));
     }
 
     @Override
     public UserDto getUserDto(Long userId) {
-        return UserMapper.toDto(getUser(userId));
+        return userMapper.toDto(getUser(userId));
     }
 
     @Override
     public User getUser(Long userId) {
-        return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID: " + userId + " не найден"));
     }
 
     @Override
@@ -69,11 +77,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(UserMapper::toDto)
+                .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
     }

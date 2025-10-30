@@ -1,29 +1,28 @@
 package ru.practicum.shareit.item;
 
-import lombok.experimental.UtilityClass;
+import jakarta.validation.constraints.NotNull;
+import org.mapstruct.*;
+import ru.practicum.shareit.booking.BookingMapper;
 import ru.practicum.shareit.item.dto.ItemCreateDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemWithBookingsDto;
+import ru.practicum.shareit.item.dto.ItemUpdateDto;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.model.User;
 
-@UtilityClass
-public class ItemMapper {
-    public Item fromCreateDto(ItemCreateDto item) {
-        Item fromCreateDto = new Item();
-        fromCreateDto.setName(item.getName());
-        fromCreateDto.setDescription(item.getDescription());
-        fromCreateDto.setAvailable(item.getAvailable());
-        return fromCreateDto;
+@Mapper(componentModel = "spring", uses = {BookingMapper.class})
+public interface ItemMapper {
+
+    Item fromCreateDto(@NotNull ItemCreateDto dto);
+
+    @Mapping(source = "owner", target = "ownerId")
+    ItemDto toDto(@NotNull Item item);
+
+    default Long map(@NotNull User owner) {
+        return owner.getId();
     }
 
-    public ItemDto toDto(Item item) {
-        if (item == null) { //сделал проверку здесь, остальное проверяю в сервисе
-            return null;
-        }
-        ItemDto toDto = new ItemDto();
-        toDto.setId(item.getId());
-        toDto.setName(item.getName());
-        toDto.setDescription(item.getDescription());
-        toDto.setAvailable(item.getAvailable());
-        return toDto;
-    }
+    ItemWithBookingsDto toDtoWithBookings(Item item);
+
+    void updateItemFromDto(ItemUpdateDto dto, @MappingTarget Item entity);
 }
