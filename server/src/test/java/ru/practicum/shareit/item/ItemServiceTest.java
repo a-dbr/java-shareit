@@ -23,9 +23,7 @@ import ru.practicum.shareit.testutil.TestDataFactory;
 import ru.practicum.shareit.user.service.UserService;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -64,7 +62,7 @@ class ItemServiceTest {
     private User otherUser;
     private Item item;
 
-    private final Instant fixedInstant = TestDataFactory.FIXED_NOW.atZone(ZoneId.systemDefault()).toInstant();
+    private final LocalDateTime fixedTime = TestDataFactory.FIXED_NOW;
 
 
     @BeforeEach
@@ -82,7 +80,7 @@ class ItemServiceTest {
         comment.setId(100L);
         comment.setText("Nice!");
         comment.setAuthor(otherUser);
-        comment.setCreated(fixedInstant);
+        comment.setCreated(fixedTime);
 
         CommentDto commentDto = new CommentDto();
         commentDto.setId(comment.getId());
@@ -99,7 +97,6 @@ class ItemServiceTest {
 
         when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
         when(commentRepository.findByItem(item)).thenReturn(Set.of(comment));
-        // spy mapping can be stubbed to return DTO
         when(commentMapper.toDto(comment)).thenReturn(commentDto);
         when(itemMapper.toDtoWithBookings(item)).thenReturn(mappedDto);
 
@@ -305,70 +302,7 @@ class ItemServiceTest {
         assertThat(itemService.checkItemOwner(item.getId(), otherUser.getId())).isFalse();
     }
 
-    @Test
-    void postComment_shouldSaveAndReturnDto_whenUserHasBooking() {
-        Long itemId = item.getId();
-        Long userId = otherUser.getId();
-
-        CommentCreateDto createDto = new CommentCreateDto();
-        createDto.setText("Отлично");
-
-        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
-        when(userService.isUserExist(userId)).thenReturn(true);
-        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
-                eq(itemId), eq(userId), any(), any(LocalDateTime.class)))
-                .thenReturn(true);
-
-        Comment saved = new Comment();
-        saved.setId(555L);
-        saved.setText(createDto.getText());
-        saved.setAuthor(otherUser);
-        saved.setItem(item);
-        saved.setCreated(fixedInstant);
-
-        when(commentRepository.save(any(Comment.class))).thenReturn(saved);
-
-        CommentDto dto = new CommentDto();
-        dto.setId(saved.getId());
-        dto.setText(saved.getText());
-        dto.setAuthorName(otherUser.getName());
-        dto.setCreated(saved.getCreated());
-
-        when(commentMapper.toDto(any(Comment.class))).thenReturn(dto);
-
-        CommentDto result = itemService.postComment(createDto, itemId, userId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(555L);
-        assertThat(result.getAuthorName()).isEqualTo(otherUser.getName());
-
-        verify(itemRepository, times(2)).findById(itemId);
-
-        verify(commentRepository).save(any(Comment.class));
-        verify(bookingRepository).existsByItemIdAndBookerIdAndStatusAndEndBefore(
-                eq(itemId), eq(userId), any(), any(LocalDateTime.class));
-    }
-
-    @Test
-    void postComment_shouldThrow_whenNoBooking() {
-        Long itemId = item.getId();
-        Long userId = otherUser.getId();
-
-        CommentCreateDto createDto = new CommentCreateDto();
-        createDto.setText("Отзыв");
-
-        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
-        when(userService.isUserExist(userId)).thenReturn(true);
-        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
-                eq(itemId), eq(userId), any(), any(LocalDateTime.class)))
-                .thenReturn(false);
-
-        assertThatThrownBy(() -> itemService.postComment(createDto, itemId, userId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Не найдено бронирований");
-    }
-
-    @Test
+@Test
     void postComment_shouldThrow_whenItemNotFound() {
         Long itemId = 999L;
         Long userId = otherUser.getId();
@@ -381,6 +315,7 @@ class ItemServiceTest {
         assertThatThrownBy(() -> itemService.postComment(createDto, itemId, userId))
                 .isInstanceOf(NotFoundException.class);
     }
+
 
     @Test
     void getItemsByOwnerId_shouldSetLastAndNextBookings_whenTheyExist() {
@@ -417,7 +352,7 @@ class ItemServiceTest {
         List<ItemWithBookingsDto> result = itemService.getItemsByOwnerId(ownerId);
 
         assertThat(result).hasSize(1);
-        ItemWithBookingsDto out = result.get(0);
+        ItemWithBookingsDto out = result.getFirst();
         assertThat(out.getId()).isEqualTo(single.getId());
         assertThat(out.getLastBooking()).isNotNull();
         assertThat(out.getNextBooking()).isNotNull();

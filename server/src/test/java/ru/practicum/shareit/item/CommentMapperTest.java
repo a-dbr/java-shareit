@@ -8,7 +8,7 @@ import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,7 +43,7 @@ class CommentMapperTest {
         author.setName("Alice");
         author.setEmail("alice@example.com");
         comment.setAuthor(author);
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         comment.setCreated(now);
 
         CommentDto dto = mapper.toDto(comment);
@@ -61,7 +61,7 @@ class CommentMapperTest {
         comment.setId(200L);
         comment.setText("No author");
         comment.setAuthor(null);
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         comment.setCreated(now);
 
         CommentDto dto = mapper.toDto(comment);

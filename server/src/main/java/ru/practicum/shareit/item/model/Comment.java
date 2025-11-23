@@ -5,7 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import ru.practicum.shareit.user.model.User;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "comments")
@@ -30,5 +30,5 @@ public class Comment {
 
     @CreationTimestamp
     @Column(name = "created", updatable = false)
-    private Instant created;
+    private LocalDateTime created;
 }

@@ -19,11 +19,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByBookerIdAndStartAfterOrderByStartDesc(Long bookerId, LocalDateTime start);
 
     @Query("""
-        SELECT b FROM Booking b
-        WHERE b.booker.id = :bookerId
-          AND :currentTime BETWEEN b.start AND b.end
-        ORDER BY b.start DESC
-    """)
+                SELECT b FROM Booking b
+                WHERE b.booker.id = :bookerId
+                  AND :currentTime BETWEEN b.start AND b.end
+                ORDER BY b.start DESC
+            """)
     List<Booking> findByBookerIdAndCurrentTime(@Param("bookerId") Long bookerId,
                                                @Param("currentTime") LocalDateTime currentTime);
 
@@ -36,20 +36,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByItemOwnerIdAndStartAfterOrderByStartDesc(Long ownerId, LocalDateTime start);
 
     @Query("""
-        SELECT b FROM Booking b
-        WHERE b.item.owner.id = :ownerId
-          AND :currentTime BETWEEN b.start AND b.end
-        ORDER BY b.start DESC
-    """)
+                SELECT b FROM Booking b
+                WHERE b.item.owner.id = :ownerId
+                  AND :currentTime BETWEEN b.start AND b.end
+                ORDER BY b.start DESC
+            """)
     List<Booking> findByItemOwnerIdAndCurrent(@Param("ownerId") Long ownerId,
                                               @Param("currentTime") LocalDateTime current);
 
     Booking findTopByItemIdAndEndBeforeOrderByEndDesc(Long itemId, LocalDateTime time);
 
     Booking findTopByItemIdAndStartAfterOrderByStartAsc(Long itemId, LocalDateTime time);
-
-    boolean existsByItemIdAndBookerIdAndStatusAndEndBefore(Long itemId,
-                                                           Long bookerId,
-                                                           BookingStatus status,
-                                                           LocalDateTime end);
 }

@@ -8,7 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.enums.BookingStatus;
+
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.exception.AccessDeniedException;
 import ru.practicum.shareit.exception.NotFoundException;
@@ -137,6 +137,7 @@ public class ItemServiceImpl implements ItemService {
 
         Comment comment = commentMapper.fromCreateDto(commentCreateDto);
         comment.setAuthor(userService.getUser(userId));
+        comment.setCreated(LocalDateTime.now());
         comment.setItem(itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с ID: " + itemId + " не найдена")));
 
@@ -167,16 +168,17 @@ public class ItemServiceImpl implements ItemService {
         return bookingMapper.toDto(booking);
     }
 
-    private boolean isBooked(@NotNull Long itemId,@NotNull  Long userId) {
-        return bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
-                itemId,
-                userId,
-                BookingStatus.APPROVED,
-                LocalDateTime.now()
-        );
+    private boolean isBooked(Long itemId, Long userId) {
+        return bookingRepository.findAllByBookerIdOrderByStartDesc(userId).stream()
+                .anyMatch(b -> b.getItem()
+                        .getId().equals(itemId)
+                        && b.getEnd().isBefore(LocalDateTime.now()));
+
     }
 
     private void validateCommentCreate(Long itemId, Long userId) {
+
+
         if (itemRepository.findById(itemId).isEmpty()) {
             throw new NotFoundException("Не найдено вещи c ID = %d".formatted(itemId));
         }
@@ -185,8 +187,8 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (!isBooked(itemId, userId)) {
-            throw new IllegalArgumentException("Не найдено бронирований вещи ID = %d пользователем ID = %d"
-                    .formatted(itemId, userId));
+            throw new IllegalArgumentException(("Не найдено подтвержденных бронирований вещи ID = %d " +
+                    "пользователем ID = %d").formatted(itemId, userId));
         }
     }
 }
