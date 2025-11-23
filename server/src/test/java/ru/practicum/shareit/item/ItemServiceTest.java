@@ -6,13 +6,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.mapper.BookingMapper;
+import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.AccessDeniedException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
-import ru.practicum.shareit.booking.mapper.BookingMapper;
-import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
@@ -98,6 +99,7 @@ class ItemServiceTest {
 
         when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
         when(commentRepository.findByItem(item)).thenReturn(Set.of(comment));
+        // spy mapping can be stubbed to return DTO
         when(commentMapper.toDto(comment)).thenReturn(commentDto);
         when(itemMapper.toDtoWithBookings(item)).thenReturn(mappedDto);
 
@@ -301,5 +303,132 @@ class ItemServiceTest {
         when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
         assertThat(itemService.checkItemOwner(item.getId(), owner.getId())).isTrue();
         assertThat(itemService.checkItemOwner(item.getId(), otherUser.getId())).isFalse();
+    }
+
+    @Test
+    void postComment_shouldSaveAndReturnDto_whenUserHasBooking() {
+        Long itemId = item.getId();
+        Long userId = otherUser.getId();
+
+        CommentCreateDto createDto = new CommentCreateDto();
+        createDto.setText("Отлично");
+
+        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(userService.isUserExist(userId)).thenReturn(true);
+        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                eq(itemId), eq(userId), any(), any(LocalDateTime.class)))
+                .thenReturn(true);
+
+        Comment saved = new Comment();
+        saved.setId(555L);
+        saved.setText(createDto.getText());
+        saved.setAuthor(otherUser);
+        saved.setItem(item);
+        saved.setCreated(fixedInstant);
+
+        when(commentRepository.save(any(Comment.class))).thenReturn(saved);
+
+        CommentDto dto = new CommentDto();
+        dto.setId(saved.getId());
+        dto.setText(saved.getText());
+        dto.setAuthorName(otherUser.getName());
+        dto.setCreated(saved.getCreated());
+
+        when(commentMapper.toDto(any(Comment.class))).thenReturn(dto);
+
+        CommentDto result = itemService.postComment(createDto, itemId, userId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(555L);
+        assertThat(result.getAuthorName()).isEqualTo(otherUser.getName());
+
+        verify(itemRepository, times(2)).findById(itemId);
+
+        verify(commentRepository).save(any(Comment.class));
+        verify(bookingRepository).existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                eq(itemId), eq(userId), any(), any(LocalDateTime.class));
+    }
+
+    @Test
+    void postComment_shouldThrow_whenNoBooking() {
+        Long itemId = item.getId();
+        Long userId = otherUser.getId();
+
+        CommentCreateDto createDto = new CommentCreateDto();
+        createDto.setText("Отзыв");
+
+        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(userService.isUserExist(userId)).thenReturn(true);
+        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                eq(itemId), eq(userId), any(), any(LocalDateTime.class)))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> itemService.postComment(createDto, itemId, userId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Не найдено бронирований");
+    }
+
+    @Test
+    void postComment_shouldThrow_whenItemNotFound() {
+        Long itemId = 999L;
+        Long userId = otherUser.getId();
+
+        CommentCreateDto createDto = new CommentCreateDto();
+        createDto.setText("Отзыв");
+
+        when(itemRepository.findById(itemId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> itemService.postComment(createDto, itemId, userId))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void getItemsByOwnerId_shouldSetLastAndNextBookings_whenTheyExist() {
+        Long ownerId = owner.getId();
+        Item single = item;
+
+        when(itemRepository.findAllByOwnerId(ownerId)).thenReturn(List.of(single));
+        when(commentRepository.findByItem(single)).thenReturn(Collections.emptySet());
+
+        BookingDto lastDto = new BookingDto();
+        lastDto.setId(201L);
+
+        BookingDto nextDto = new BookingDto();
+        nextDto.setId(202L);
+
+        ru.practicum.shareit.booking.model.Booking lastBooking = TestDataFactory.booking(
+                201L, single, otherUser, LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(4));
+        ru.practicum.shareit.booking.model.Booking nextBooking = TestDataFactory.booking(
+                202L, single, otherUser, LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(3));
+
+        when(bookingRepository.findTopByItemIdAndEndBeforeOrderByEndDesc(eq(single.getId()), any(LocalDateTime.class)))
+                .thenReturn(lastBooking);
+        when(bookingRepository.findTopByItemIdAndStartAfterOrderByStartAsc(eq(single.getId()),
+                any(LocalDateTime.class))).thenReturn(nextBooking);
+
+        ItemWithBookingsDto mapped = new ItemWithBookingsDto();
+        mapped.setId(single.getId());
+        mapped.setOwnerId(ownerId);
+        when(itemMapper.toDtoWithBookings(single)).thenReturn(mapped);
+
+        when(bookingMapper.toDto(lastBooking)).thenReturn(lastDto);
+        when(bookingMapper.toDto(nextBooking)).thenReturn(nextDto);
+
+        List<ItemWithBookingsDto> result = itemService.getItemsByOwnerId(ownerId);
+
+        assertThat(result).hasSize(1);
+        ItemWithBookingsDto out = result.get(0);
+        assertThat(out.getId()).isEqualTo(single.getId());
+        assertThat(out.getLastBooking()).isNotNull();
+        assertThat(out.getNextBooking()).isNotNull();
+        assertThat(out.getLastBooking().getId()).isEqualTo(201L);
+        assertThat(out.getNextBooking().getId()).isEqualTo(202L);
+
+        verify(bookingRepository).findTopByItemIdAndEndBeforeOrderByEndDesc(eq(single.getId()),
+                any(LocalDateTime.class));
+        verify(bookingRepository).findTopByItemIdAndStartAfterOrderByStartAsc(eq(single.getId()),
+                any(LocalDateTime.class));
+        verify(bookingMapper).toDto(lastBooking);
+        verify(bookingMapper).toDto(nextBooking);
     }
 }
