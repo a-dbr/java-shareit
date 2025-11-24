@@ -280,6 +280,7 @@ class ItemServiceTest {
 
     @Test
     void updateItem_partialFields_shouldOnlyUpdateNonNull() {
+        Long ownerId = owner.getId();
         ItemUpdateDto updateDto = new ItemUpdateDto();
         updateDto.setName("Обновленное имя");
 
@@ -294,6 +295,8 @@ class ItemServiceTest {
 
         when(itemRepository.save(any(Item.class))).thenReturn(saved);
         when(itemMapper.toDto(saved)).thenReturn(new ItemDto());
+
+        itemService.updateItem(item.getId(), updateDto, ownerId);
 
         ArgumentCaptor<Item> captor = ArgumentCaptor.forClass(Item.class);
         verify(itemRepository).save(captor.capture());
