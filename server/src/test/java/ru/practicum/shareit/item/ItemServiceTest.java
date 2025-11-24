@@ -8,6 +8,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.AccessDeniedException;
 import ru.practicum.shareit.exception.NotFoundException;
@@ -19,6 +20,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.testutil.TestDataFactory;
 import ru.practicum.shareit.user.service.UserService;
 import ru.practicum.shareit.user.model.User;
@@ -45,6 +48,9 @@ class ItemServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+
+    @Mock
+    private ItemRequestRepository itemRequestRepository;
 
     @Spy
     private ItemMapper itemMapper = Mappers.getMapper(ItemMapper.class);
@@ -211,14 +217,90 @@ class ItemServiceTest {
     }
 
     @Test
+    void createItem_withRequestId_succeeds_and_withoutRequest_throws() {
+        ItemCreateDto dto = new ItemCreateDto();
+        dto.setName("Дрель");
+        dto.setDescription("описание");
+        dto.setAvailable(true);
+        dto.setRequestId(50L);
+
+        Item entityFromDto = new Item();
+        entityFromDto.setName(dto.getName());
+        entityFromDto.setDescription(dto.getDescription());
+        entityFromDto.setAvailable(dto.getAvailable());
+
+        ItemRequest req = new ItemRequest();
+        req.setId(50L);
+        req.setRequester(owner);
+
+        Item saved = new Item();
+        saved.setId(321L);
+        saved.setName(dto.getName());
+        saved.setOwner(owner);
+
+        ItemDto outDto = new ItemDto();
+        outDto.setId(saved.getId());
+        outDto.setName(saved.getName());
+        outDto.setOwnerId(owner.getId());
+
+        when(userService.getUser(owner.getId())).thenReturn(owner);
+        when(itemMapper.fromCreateDto(dto)).thenReturn(entityFromDto);
+        when(itemRequestRepository.findById(50L)).thenReturn(Optional.of(req));
+        when(itemRepository.save(any(Item.class))).thenReturn(saved);
+        when(itemMapper.toDto(saved)).thenReturn(outDto);
+
+        ItemDto result = itemService.createItem(dto, owner.getId());
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(321L);
+
+        ItemCreateDto dto2 = new ItemCreateDto();
+        dto2.setName("Пила");
+        dto2.setDescription("Пила");
+        dto2.setAvailable(true);
+        dto2.setRequestId(99999L);
+
+        when(itemRequestRepository.findById(99999L)).thenReturn(Optional.empty());
+        when(itemMapper.fromCreateDto(dto2)).thenReturn(new Item());
+
+        assertThatThrownBy(() -> itemService.createItem(dto2, owner.getId()))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Запрос с ID");
+    }
+
+    @Test
     void updateItem_shouldThrowAccessDenied_whenNotOwner() {
         Long updaterId = otherUser.getId();
         ItemUpdateDto updateDto = new ItemUpdateDto();
-        updateDto.setName("Новое имя");
+        updateDto.setName("Обновленное имя");
 
         when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
 
         assertThrows(AccessDeniedException.class, () -> itemService.updateItem(item.getId(), updateDto, updaterId));
+    }
+
+    @Test
+    void updateItem_partialFields_shouldOnlyUpdateNonNull() {
+        ItemUpdateDto updateDto = new ItemUpdateDto();
+        updateDto.setName("Обновленное имя");
+
+        when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
+
+        Item saved = new Item();
+        saved.setId(item.getId());
+        saved.setName(updateDto.getName());
+        saved.setDescription(item.getDescription());
+        saved.setAvailable(item.getAvailable());
+        saved.setOwner(owner);
+
+        when(itemRepository.save(any(Item.class))).thenReturn(saved);
+        when(itemMapper.toDto(saved)).thenReturn(new ItemDto());
+
+        ArgumentCaptor<Item> captor = ArgumentCaptor.forClass(Item.class);
+        verify(itemRepository).save(captor.capture());
+        Item savedArg = captor.getValue();
+
+        assertThat(savedArg.getName()).isEqualTo("Обновленное имя");
+        assertThat(savedArg.getDescription()).isEqualTo(item.getDescription());
     }
 
     @Test
@@ -285,6 +367,16 @@ class ItemServiceTest {
     }
 
     @Test
+    void getItemsByText_shouldReturnEmpty_whenBlankOrNull_andNotCallRepository() {
+        List<ItemDto> res1 = itemService.getItemsByText("");
+        assertThat(res1).isEmpty();
+        List<ItemDto> res2 = itemService.getItemsByText(null);
+        assertThat(res2).isEmpty();
+
+        verify(itemRepository, never()).findByText(anyString());
+    }
+
+    @Test
     void existById_shouldReturnTrueOrFalse() {
         when(itemRepository.existsById(10L)).thenReturn(true);
         when(itemRepository.existsById(999L)).thenReturn(false);
@@ -302,7 +394,7 @@ class ItemServiceTest {
         assertThat(itemService.checkItemOwner(item.getId(), otherUser.getId())).isFalse();
     }
 
-@Test
+    @Test
     void postComment_shouldThrow_whenItemNotFound() {
         Long itemId = 999L;
         Long userId = otherUser.getId();
@@ -316,6 +408,64 @@ class ItemServiceTest {
                 .isInstanceOf(NotFoundException.class);
     }
 
+    @Test
+    void postComment_shouldThrow_whenNoPastBooking() {
+        Long itemId = item.getId();
+        Long userId = otherUser.getId();
+
+        CommentCreateDto createDto = new CommentCreateDto();
+        createDto.setText("Отзыв");
+
+        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(userService.isUserExist(userId)).thenReturn(true);
+
+        when(bookingRepository.findAllByBookerIdOrderByStartDesc(userId)).thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> itemService.postComment(createDto, itemId, userId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Не найдено подтвержденных бронирований");
+    }
+
+    @Test
+    void postComment_allows_whenUserHadPastBooking() {
+        Long itemId = item.getId();
+        Long userId = otherUser.getId();
+
+        CommentCreateDto createDto = new CommentCreateDto();
+        createDto.setText("Отличная вещь");
+
+        Comment commentEntity = new Comment();
+        commentEntity.setId(500L);
+        commentEntity.setText(createDto.getText());
+
+        CommentDto commentDto = new CommentDto();
+        commentDto.setId(500L);
+        commentDto.setText(createDto.getText());
+        commentDto.setAuthorName(otherUser.getName());
+        commentDto.setCreated(fixedTime);
+
+        Booking past = new Booking();
+        past.setId(1000L);
+        past.setItem(item);
+        past.setBooker(otherUser);
+        past.setStart(fixedTime.minusDays(5));
+        past.setEnd(fixedTime.minusDays(2));
+
+        when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(userService.isUserExist(userId)).thenReturn(true);
+        when(bookingRepository.findAllByBookerIdOrderByStartDesc(userId)).thenReturn(List.of(past));
+
+        when(commentMapper.fromCreateDto(createDto)).thenReturn(commentEntity);
+        when(userService.getUser(userId)).thenReturn(otherUser);
+        when(commentRepository.save(any(Comment.class))).thenReturn(commentEntity);
+        when(commentMapper.toDto(commentEntity)).thenReturn(commentDto);
+
+        CommentDto out = itemService.postComment(createDto, itemId, userId);
+
+        assertThat(out).isNotNull();
+        assertThat(out.getText()).isEqualTo("Отличная вещь");
+        verify(commentRepository).save(any(Comment.class));
+    }
 
     @Test
     void getItemsByOwnerId_shouldSetLastAndNextBookings_whenTheyExist() {

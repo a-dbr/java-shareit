@@ -8,6 +8,4 @@ import ru.practicum.shareit.booking.model.Booking;
 @Mapper(componentModel = "spring")
 public interface BookingMapper {
     BookingDto toDto(@NotNull Booking booking);
-
-    Booking toEntity(@NotNull BookingDto dto);
 }
